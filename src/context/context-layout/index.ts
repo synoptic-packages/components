@@ -10,7 +10,10 @@ export const initialLayoutState: LayoutConfig = {
 	footerMenuItems: undefined,
 	footerTitle: undefined,
 	footerDescription: undefined,
-	showHeader: true,
+	// Header chrome is OFF by default so <Provider>/<LayoutProvider> work
+	// without a Router. The Header uses useNavigate, so consumers opt in with
+	// <LayoutProvider config={{ showHeader: true }}> (and provide a Router).
+	showHeader: false,
 }
 
 export interface LayoutContextType {
