@@ -1,0 +1,4 @@
+.upload__image-wrapper img {
+	max-height: 300px;
+	max-width: 100%;
+}
