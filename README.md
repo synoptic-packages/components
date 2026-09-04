@@ -14,11 +14,20 @@ yarn add @synotech/components @mui/material @emotion/react @emotion/styled react
 ## Usage
 
 ```tsx
-import { Provider, Button, FieldText, getDesignTokens } from '@synotech/components'
+import { Provider, Button, FieldText } from '@synotech/components'
+
+// mode: 'light' | 'dark' (defaults to dark for source compatibility)
+// brand: overrides the semantic primary/accent tokens (optional)
+// direction: 'ltr' | 'rtl' (optional; auto-derived from i18n language otherwise)
+<Provider mode="light" brand={{ brand_color: '#C2410C', brand_color_accent: '#FDBA74' }}>
+  <Button variant="contained">Pay</Button>
+  <FieldText name="email" control={control} label="Email" />
+</Provider>
 ```
 
-Wrap your app in `<Provider brand={{ brand_color, brand_color_accent }}>`
-to get the MUI theme, snackbar/dialog host, layout and form contexts.
+The `<Provider>` supplies the MUI theme, snackbar/dialog hosts, and the
+layout/form/camera contexts. Brand colours can also be set imperatively via
+`setBrandColors({ brand_color, brand_color_accent })` before render.
 
 ## Included
 

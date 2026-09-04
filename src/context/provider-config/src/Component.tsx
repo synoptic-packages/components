@@ -12,7 +12,7 @@ import { Splash } from '../../../components/splash'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { locales_meta } from '../../../lib/i18n'
 import type { RootState } from '../../../lib/store'
-import { colorsDark, colorsLight } from '../../../theme/colors'
+import { colorsDark, colorsLight, setBrandColors } from '../../../theme/colors'
 import { __DEV__ } from '../../../constants'
 import { isStorybook } from '../../../lib/env'
 import { getDesignTokens } from '../../../theme/material'
@@ -120,26 +120,62 @@ const ProviderContent: FC<{ children: React.ReactNode; theme: TGeneric; tenant: 
 	}
 )
 
-const Provider: FC<TGeneric> = memo(function ProviderCommon({ children }) {
+export interface ProviderProps {
+	children: React.ReactNode
+	/** Color scheme. Defaults to 'dark' (kept for source compatibility); consumers pass their own mode. */
+	mode?: 'light' | 'dark'
+	/** Brand colours. Applied via setBrandColors so themed components pick them up. */
+	brand?: {
+		brand_color?: string
+		brand_color_accent?: string
+	}
+	/** Document direction. Defaults to ltr (rtl auto-derived from active i18n language when unset). */
+	direction?: Direction
+	/** Optional tenant/config blob forwarded to the config context (source-compatible). */
+	tenant?: TGeneric
+}
+
+const Provider: FC<ProviderProps> = memo(function ProviderCommon({
+	children,
+	mode,
+	brand,
+	direction: directionProp,
+	tenant,
+}) {
 	const { themeColor } = useSelector((state: RootState) => state.themeStore)
+	const resolvedMode: 'light' | 'dark' = mode ?? themeColor ?? 'dark'
+
+	// Brand override: re-derive the exported palettes so every themed component
+	// (buttons, fields, headers) picks up the brand primary/accent.
+	useEffect(() => {
+		if (brand) {
+			setBrandColors({
+				brand_color: brand.brand_color,
+				brand_color_accent: brand.brand_color_accent,
+			})
+		}
+	}, [brand?.brand_color, brand?.brand_color_accent])
+
 	const { i18n } = useTranslation()
 
-	// Direction follows the ACTIVE i18n language's rtl flag — it was hardcoded 'ltr' here, which
-	// silently broke every right-to-left locale the language picker can select. The document
-	// element carries the same value so non-MUI layout (scrollbars, native inputs) flips with it.
+	// Direction: explicit prop wins, else follows the ACTIVE i18n language's rtl flag.
 	const languageCode = (i18n.language || `en`).split(`-`)[0]
-	const direction: Direction = locales_meta[languageCode]?.rtl ? `rtl` : `ltr`
+	const direction: Direction =
+		directionProp ?? (locales_meta[languageCode]?.rtl ? `rtl` : `ltr`)
 
 	useEffect(() => {
 		document.documentElement.dir = direction
 	}, [direction])
 
-	const themeOptions: ThemeOptions = useMemo(() => getDesignTokens(themeColor, direction), [themeColor, direction])
+	const themeOptions: ThemeOptions = useMemo(
+		() => getDesignTokens(resolvedMode, direction),
+		[resolvedMode, direction]
+	)
 	const theme = useMemo(() => createTheme(themeOptions), [themeOptions])
 
 	return (
 		<MuiThemeProvider theme={theme}>
-			<ProviderContent theme={theme} tenant={undefined}>
+			<ProviderContent theme={theme} tenant={tenant}>
 				<CameraProvider>
 					<LayoutProvider>
 						<ProviderForms>{children}</ProviderForms>
