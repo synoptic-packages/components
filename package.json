@@ -1,6 +1,6 @@
 {
 	"name": "@synotech/components",
-	"version": "0.1.0",
+	"version": "4.1.0",
 	"description": "Shared React + MUI component library for the Synotech ecosystem",
 	"keywords": [
 		"react",
