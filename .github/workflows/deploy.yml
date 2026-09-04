@@ -1,0 +1,76 @@
+name: Deploy Storybook to Cloudflare Pages
+
+# Deploys the @synotech/components Storybook to the existing Cloudflare Pages
+# project `infomentor-ui-storybook`, which serves ui.synotech.dev.
+# Trigger: every push/merge to master.
+
+on:
+    push:
+        branches:
+            - master
+
+concurrency:
+    group: deploy-components-storybook-${{ github.ref }}
+    cancel-in-progress: false
+
+env:
+    NODE_VERSION: "20"
+    PAGES_PRODUCTION_BRANCH: "master"
+    PAGES_PROJECT_NAME: "infomentor-ui-storybook"
+    AWS_REGION: "us-east-1"
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        timeout-minutes: 20
+        permissions:
+            contents: read
+            id-token: write
+            deployments: write
+            packages: read
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Install Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  cache: "yarn"
+
+            - name: Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  role-to-assume: arn:aws:iam::140991650843:role/gha-synoptic-wallet-ui
+                  aws-region: ${{ env.AWS_REGION }}
+
+            - name: Fetch deployment secrets from SSM
+              run: |
+                  get_param() {
+                    aws ssm get-parameter --name "$1" --with-decryption --query 'Parameter.Value' --output text --region us-east-1 2>/dev/null || echo ""
+                  }
+                  CLOUDFLARE_API_TOKEN=$(get_param "/infomentor/production/cloudflare-api-token")
+                  if [ -n "${CLOUDFLARE_API_TOKEN}" ]; then echo "::add-mask::${CLOUDFLARE_API_TOKEN}"; fi
+                  CLOUDFLARE_ACCOUNT_ID=$(get_param "/infomentor/production/cloudflare-account-id")
+                  if [ -n "${CLOUDFLARE_ACCOUNT_ID}" ]; then echo "::add-mask::${CLOUDFLARE_ACCOUNT_ID}"; fi
+                  {
+                    echo "CLOUDFLARE_API_TOKEN=${CLOUDFLARE_API_TOKEN}"
+                    echo "CLOUDFLARE_ACCOUNT_ID=${CLOUDFLARE_ACCOUNT_ID}"
+                  } >> "$GITHUB_ENV"
+
+            - name: Install dependencies
+              run: yarn install --frozen-lockfile --ignore-engines
+
+            - name: Build Storybook
+              run: yarn build-storybook
+
+            - name: Deploy to Cloudflare Pages
+              run: |
+                  set -euo pipefail
+                  npx wrangler pages deploy storybook-static \
+                    --project-name="${PAGES_PROJECT_NAME}" \
+                    --branch="${PAGES_PRODUCTION_BRANCH}" \
+                    --commit-hash="${GITHUB_SHA}" \
+                    --commit-message="Deploy ${PAGES_PROJECT_NAME} storybook from ${GITHUB_REF_NAME} (#${GITHUB_RUN_NUMBER})" \
+                    --commit-dirty=true
