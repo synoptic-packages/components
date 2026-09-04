@@ -1,5 +1,6 @@
 import type { Preview } from '@storybook/react-vite'
 import React, { useEffect } from 'react'
+import { MemoryRouter } from 'react-router'
 import { Provider } from '../src/context/provider-config'
 import { setBrandColors } from '../src/theme/colors'
 import { INITIAL_VIEWPORTS } from 'storybook/viewport'
@@ -47,9 +48,12 @@ const preview: Preview = {
 	decorators: [
 		(Story, context) => (
 			<ThemeSync context={context}>
-				<Provider>
-					<Story />
-				</Provider>
+				{/* Router context: Header/Menu/Status/Form use useNavigate/useLocation */}
+				<MemoryRouter>
+					<Provider>
+						<Story />
+					</Provider>
+				</MemoryRouter>
 			</ThemeSync>
 		),
 	],
