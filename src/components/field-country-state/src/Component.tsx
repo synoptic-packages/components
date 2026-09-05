@@ -95,15 +95,12 @@ export const Component: React.FC<IComponentProps> = ({
 									error={hasError}
 									input={input}
 									slotProps={slotProps}
-									inputProps={{
-										margin: `none`,
-										sx: {
-											textAlign: 'left',
-										},
-										inputLabel: {
-											shrink: false,
-										},
-									}}>
+								inputProps={{
+									margin: `none`,
+									sx: {
+										textAlign: 'left',
+									},
+								}}>
 									{options.length > 0 &&
 										options.map((option, i) => (
 											<MenuItem key={i} value={option.value}>
