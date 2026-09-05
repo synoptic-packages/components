@@ -2,8 +2,15 @@ import type { SettlementWriteOffReasonCode } from '../lib'
 
 import version from './version.json'
 
-export const __DEV__ = process.env.NODE_ENV === `development`
-export const __PRODUCTION__ = process.env.NODE_ENV === `production`
+// Read the node env defensively — in a static/browser build `process` may be
+// undefined, and an unguarded read at module scope throws, killing the whole
+// module (Storybook's "preparing" hang). `window.__DEV__` can be set by hosts.
+const NODE_ENV =
+	typeof process !== 'undefined' && process.env ? process.env.NODE_ENV : undefined
+export const __DEV__ =
+	NODE_ENV === 'development' ||
+	(typeof window !== 'undefined' && Boolean((window as any).__DEV__))
+export const __PRODUCTION__ = NODE_ENV === 'production'
 
 export { default as sizing } from '../theme/sizing'
 
@@ -36,10 +43,13 @@ export const __APP_VERSION__ = version.version
 export const __APP_BUILD_DATE__ = version.buildDate
 export const __GEO__ = `--stack--geo`
 //
-export const ARBITER_MOUNT_PATH = process.env.NEXT_PUBLIC_ARBITER_STACK_SERVER_MOUNT_PATH as string
-export const APP_ID = process.env.NEXT_PUBLIC_API_KEYS_APP_ID as string
-export const CLIENT_KEY = process.env.NEXT_PUBLIC_API_KEYS_CLIENT_KEY as string
-export const JAVASCRIPT_KEY = process.env.NEXT_PUBLIC_API_KEYS_JAVASCRIPT_KEY as string
+// Read env defensively (process may be undefined in a static/browser build).
+const envVar = (key: string): string | undefined =>
+	typeof process !== 'undefined' && process.env ? process.env[key] : undefined
+export const ARBITER_MOUNT_PATH = envVar('NEXT_PUBLIC_ARBITER_STACK_SERVER_MOUNT_PATH') as string
+export const APP_ID = envVar('NEXT_PUBLIC_API_KEYS_APP_ID') as string
+export const CLIENT_KEY = envVar('NEXT_PUBLIC_API_KEYS_CLIENT_KEY') as string
+export const JAVASCRIPT_KEY = envVar('NEXT_PUBLIC_API_KEYS_JAVASCRIPT_KEY') as string
 //
 // 64, and it must stay in step with the SAME-NAMED build-time define in `vite.config.ts` and
 // `.storybook/main.ts`. Two declarations share this identifier: a file that IMPORTS it gets this

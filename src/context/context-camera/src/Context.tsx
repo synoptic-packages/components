@@ -35,12 +35,18 @@ const CameraProvider: React.FC<UseCameraDefaultProps> = React.memo(function Form
 		[camera, cameraOpen, cameraClose]
 	)
 
+	// Only mount the camera dialog when it's actually open. Rendering
+	// <DialogCamera> (and its react-webcam dep) for every consumer made the
+	// library unusable in Storybook — react-webcam needs a real camera/secure
+	// context and throws otherwise, leaving the preview stuck on "preparing".
 	return (
 		<CameraContext.Provider value={value}>
 			{children}
-			<React.Suspense fallback={<SkeletonFormSmall />}>
-				<DialogCamera camera={camera} cameraClose={cameraClose} />
-			</React.Suspense>
+			{camera.isOpen && (
+				<React.Suspense fallback={<SkeletonFormSmall />}>
+					<DialogCamera camera={camera} cameraClose={cameraClose} />
+				</React.Suspense>
+			)}
 		</CameraContext.Provider>
 	)
 })
