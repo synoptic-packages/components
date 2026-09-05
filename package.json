@@ -85,10 +85,10 @@
 		"@mui/x-data-grid": "^8.17.0",
 		"@mui/x-date-pickers": "^8.17.0",
 		"@reduxjs/toolkit": "^2.10.1",
-		"@storybook/addon-docs": "10.4.1",
-		"@storybook/addon-onboarding": "10.4.1",
-		"@storybook/addon-themes": "10.4.1",
-		"@storybook/react-vite": "10.4.1",
+		"@storybook/addon-docs": "10.6.0",
+		"@storybook/addon-onboarding": "10.6.0",
+		"@storybook/addon-themes": "10.6.0",
+		"@storybook/react-vite": "10.6.0",
 		"@synotech/flags": "^3.0.1",
 		"@synotech/icons": "^4.1.6",
 		"@synotech/qrcode": "^1.0.4",
@@ -129,13 +129,13 @@
 		"react-webcam": "^7.2.0",
 		"rimraf": "^5.0.0",
 		"sass-embedded": "^1.104.0",
-		"storybook": "10.4.1",
+		"storybook": "10.6.0",
 		"tailwind-merge": "^3.3.1",
 		"tsup": "^8.5.0",
 		"typescript": "^5.8.3",
 		"vite": "^8.0.0",
 		"yup": "^1.7.1",
-		"@storybook/react": "10.4.1"
+		"@storybook/react": "10.6.0"
 	},
 	"prettier": {
 		"bracketSpacing": true,
@@ -150,11 +150,11 @@
 	},
 	"packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e",
 	"resolutions": {
-		"@storybook/react": "10.4.1",
-		"@storybook/react-vite": "10.4.1",
-		"storybook": "10.4.1",
-		"@storybook/addon-docs": "10.4.1",
-		"@storybook/addon-onboarding": "10.4.1",
-		"@storybook/addon-themes": "10.4.1"
+		"@storybook/react": "10.6.0",
+		"@storybook/react-vite": "10.6.0",
+		"storybook": "10.6.0",
+		"@storybook/addon-docs": "10.6.0",
+		"@storybook/addon-onboarding": "10.6.0",
+		"@storybook/addon-themes": "10.6.0"
 	}
 }

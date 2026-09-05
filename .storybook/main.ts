@@ -20,22 +20,23 @@ const config: StorybookConfig = {
 			'import.meta.env.STORYBOOK': JSON.stringify('true'),
 		}
 
-		// React 19 removed the `act` export from `react`, but @storybook/react 10.4
-		// still calls React.act(...) via react-dom/test-utils, leaving every story stuck
-		// on "preparing" with "React.act is not a function". Alias react-dom/test-utils
-		// to a shim that exports a working `act` (the dep's act forwards to React.act,
-		// which no longer exists).
-		viteConfig.resolve = {
-			...viteConfig.resolve,
-			alias: [
-				...(viteConfig.resolve?.alias || []),
-				{ find: /^react-dom\/test-utils$/, replacement: new URL('./react-dom-test-utils-shim.ts', import.meta.url).pathname },
-				{ find: /^react-dom\/test-utils\.js$/, replacement: new URL('./react-dom-test-utils-shim.ts', import.meta.url).pathname },
-			],
-		}
+		// The dep optimizer pre-bundles React; in production mode `act()` throws
+		// ("act(...) is not supported in production builds of React"). The
+		// dev-server in-app define above is not applied to pre-bundled deps,
+		// so set NODE_ENV=development at the dependency-optimization stage too.
+		// NOTE: Vite 8 deprecates `esbuildOptions` in favour of
+		// `optimizeDeps.rolldownOptions`, but the rolldown input options accept
+		// no `define` key (it warns "Invalid key"), so the deprecated key stays
+		// until Vite provides a replacement for optimizer defines.
 		viteConfig.optimizeDeps = {
 			...viteConfig.optimizeDeps,
-			exclude: [...(viteConfig.optimizeDeps?.exclude || []), 'react-dom/test-utils'],
+			esbuildOptions: {
+				...(viteConfig.optimizeDeps?.esbuildOptions || {}),
+				define: {
+					...(viteConfig.optimizeDeps?.esbuildOptions?.define || {}),
+					'process.env.NODE_ENV': JSON.stringify('development'),
+				},
+			},
 		}
 
 		return viteConfig
