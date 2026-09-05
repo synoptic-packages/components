@@ -1,11 +1,31 @@
 <script>
-	// The static build (Storybook 10.4 / rolldown) does not apply the `define` keys from
-	// `.storybook/main.ts` `viteFinal`, so they arrive as raw, undefined identifiers and any
-	// evaluation throws — this kills the preview module and leaves every story stuck on
-	// Storybook's "preparing" loader with no visible error. Declaring them here (bare
-	// identifiers resolve to window globals) makes the static build behave like the dev server.
-	window.__DEV__ = true
-	window.__PRODUCTION__ = false
-	window.__APP_VERSION__ = '0.0.0'
-	window.__APP_BUILD_DATE__ = new Date().toISOString()
+	// Capture any render/console error to window.__ERRLOG + document.title so we
+	// can read the actual Storybook preview error from the browser. Storybook's
+	// "Error rendering story" logs the real cause via console.error.
+	window.__ERRLOG = []
+	window.__origConsoleError = window.console.error.bind(window.console)
+	window.console.error = function () {
+		try {
+			const msg = Array.from(arguments)
+				.map(function (x) {
+					try {
+						if (x && x.description) return String(x.description)
+						if (x && x.message) return String(x.message)
+						return typeof x === 'object' ? JSON.stringify(x) : String(x)
+					} catch (e) {
+						return String(x)
+					}
+				})
+				.join(' ')
+			window.__ERRLOG.push(msg)
+			document.title = 'ERR:' + msg.slice(0, 120)
+		} catch (e) {
+			/* ignore */
+		}
+		return window.__origConsoleError.apply(window.console, arguments)
+	}
+	window.addEventListener('error', function (e) {
+		window.__ERRLOG.push('ONERR: ' + (e.message || '') + ' ' + (e.filename || ''))
+		document.title = 'ONERR:' + (e.message || '').slice(0, 80)
+	})
 </script>
