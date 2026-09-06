@@ -1,11 +1,26 @@
 import { getEnv } from '../../../lib/env'
 import { Box, useTheme } from '@mui/material'
 import { decodePolyline5 } from '../../../lib'
-import mapboxgl, { type LngLatLike, type Map as MapboxMap } from 'mapbox-gl'
-import 'mapbox-gl/dist/mapbox-gl.css'
+import type mapboxglTypes from 'mapbox-gl'
+import type { LngLatLike, Map as MapboxMap } from 'mapbox-gl'
 import * as React from 'react'
 
 import type { MapCoordinate, MapMarker, MapProps } from './types'
+
+/**
+ * mapbox-gl is an OPTIONAL peer: it is loaded lazily on first map mount so
+ * consumers that never render Map (most tenants) neither install nor bundle
+ * it. The `@vite-ignore` keeps bundlers from resolving the specifier at
+ * build time; rendering Map without the package installed throws here.
+ */
+type MapboxGL = typeof mapboxglTypes
+let mapboxPromise: Promise<MapboxGL> | null = null
+const loadMapbox = (): Promise<MapboxGL> => {
+	mapboxPromise ??= import(/* @vite-ignore */ 'mapbox-gl').then(
+		(module: MapboxGL | { default: MapboxGL }) => (module as { default?: MapboxGL }).default ?? (module as MapboxGL)
+	)
+	return mapboxPromise
+}
 
 const lngLat = (coordinate: MapCoordinate): [number, number] => [coordinate.longitude, coordinate.latitude]
 
@@ -58,18 +73,19 @@ export const Component: React.FC<MapProps> = ({
 	// Initialise once per (token, style-mode). The provider Parse client refuses re-init with a different
 	// config; the map is analogously torn down and rebuilt only when the token or the light/dark base changes.
 	React.useEffect(() => {
-		const token = accessToken ?? (getEnv('VITE_PUBLIC_MAPBOX_TOKEN'))
+		const token = accessToken ?? getEnv('VITE_PUBLIC_MAPBOX_TOKEN')
 		const container = containerRef.current
 		if (!token || !container) return
 
-		mapboxgl.accessToken = token
 		let map: MapboxMap | null = null
 		let cancelled = false
+		const cleanups: Array<() => void> = []
 
-		const init = () => {
+		const init = (mapboxgl: MapboxGL) => {
 			if (cancelled || map || !containerRef.current) return
 			const { clientWidth, clientHeight } = containerRef.current
 			if (clientWidth === 0 || clientHeight === 0) return
+			mapboxgl.accessToken = token
 			map = new mapboxgl.Map({
 				container: containerRef.current,
 				style: mode === `dark` ? DARK_STYLE : LIGHT_STYLE,
@@ -82,13 +98,21 @@ export const Component: React.FC<MapProps> = ({
 			mapRef.current = map
 		}
 
-		init()
-		const observer = map ? null : new ResizeObserver(() => init())
-		observer?.observe(container)
+		loadMapbox().then((mapboxgl) => {
+			if (cancelled) return
+			init(mapboxgl)
+			if (!mapRef.current) {
+				const observer = new ResizeObserver(() => {
+					if (!cancelled) init(mapboxgl)
+				})
+				observer.observe(container)
+				cleanups.push(() => observer.disconnect())
+			}
+		})
 
 		return () => {
 			cancelled = true
-			observer?.disconnect()
+			cleanups.forEach((fn) => fn())
 			if (map) {
 				try {
 					map.remove()
@@ -117,10 +141,19 @@ export const Component: React.FC<MapProps> = ({
 	React.useEffect(() => {
 		const map = mapRef.current
 		if (!map) return
-		const instances = (markers ?? []).map((marker) =>
-			new mapboxgl.Marker({ color: markerColor(marker) }).setLngLat(lngLat(marker.coordinate)).addTo(map)
-		)
-		return () => instances.forEach((instance) => instance.remove())
+		let cancelled = false
+		loadMapbox().then((mapboxgl) => {
+			if (cancelled || !mapRef.current) return
+			const instances = (markers ?? []).map((marker) =>
+				new mapboxgl.Marker({ color: markerColor(marker) }).setLngLat(lngLat(marker.coordinate)).addTo(map)
+			)
+			cleanups.push(() => instances.forEach((instance) => instance.remove()))
+		})
+		const cleanups: Array<() => void> = []
+		return () => {
+			cancelled = true
+			cleanups.forEach((fn) => fn())
+		}
 	}, [markers, markerColor])
 
 	// Server route geometry (decoded polyline5) — drawn as a themed line; never fetched client-side.
@@ -135,51 +168,56 @@ export const Component: React.FC<MapProps> = ({
 		const coords = decodePolyline5(routeValue).map((point) => [point.longitude, point.latitude] as [number, number])
 		if (coords.length < 2) return
 
-		const draw = () => {
-			if (!mapRef.current) return
-			const m = mapRef.current
-			const data: GeoJSON.Feature = {
-				type: `Feature`,
-				properties: {},
-				geometry: { type: `LineString`, coordinates: coords },
+		let cancelled = false
+		loadMapbox().then((mapboxgl) => {
+			if (cancelled || mapRef.current !== map) return
+			const draw = () => {
+				if (!mapRef.current) return
+				const m = mapRef.current
+				const data: GeoJSON.Feature = {
+					type: `Feature`,
+					properties: {},
+					geometry: { type: `LineString`, coordinates: coords },
+				}
+				if (m.getSource(ROUTE_SOURCE)) {
+					;(m.getSource(ROUTE_SOURCE) as mapboxgl.GeoJSONSource).setData(data)
+				} else {
+					m.addSource(ROUTE_SOURCE, { type: `geojson`, data })
+					m.addLayer({
+						id: ROUTE_CASING,
+						type: `line`,
+						source: ROUTE_SOURCE,
+						layout: { 'line-cap': `round`, 'line-join': `round` },
+						paint: { 'line-color': casingColor, 'line-width': routeWidth + 4 },
+					})
+					m.addLayer({
+						id: ROUTE_LINE,
+						type: `line`,
+						source: ROUTE_SOURCE,
+						layout: { 'line-cap': `round`, 'line-join': `round` },
+						paint: { 'line-color': routeColor, 'line-width': routeWidth },
+					})
+				}
+				if (routeFit) {
+					const bounds = routeBounds
+						? new mapboxgl.LngLatBounds(lngLat(routeBounds.southWest), lngLat(routeBounds.northEast))
+						: coords.reduce(
+								(b, c) => b.extend(c as LngLatLike),
+								new mapboxgl.LngLatBounds(coords[0] as LngLatLike, coords[0] as LngLatLike)
+							)
+					m.fitBounds(bounds, { padding: routePadding, duration: 500 })
+				}
 			}
-			if (m.getSource(ROUTE_SOURCE)) {
-				;(m.getSource(ROUTE_SOURCE) as mapboxgl.GeoJSONSource).setData(data)
-			} else {
-				m.addSource(ROUTE_SOURCE, { type: `geojson`, data })
-				m.addLayer({
-					id: ROUTE_CASING,
-					type: `line`,
-					source: ROUTE_SOURCE,
-					layout: { 'line-cap': `round`, 'line-join': `round` },
-					paint: { 'line-color': casingColor, 'line-width': routeWidth + 4 },
-				})
-				m.addLayer({
-					id: ROUTE_LINE,
-					type: `line`,
-					source: ROUTE_SOURCE,
-					layout: { 'line-cap': `round`, 'line-join': `round` },
-					paint: { 'line-color': routeColor, 'line-width': routeWidth },
-				})
-			}
-			if (routeFit) {
-				const bounds = routeBounds
-					? new mapboxgl.LngLatBounds(lngLat(routeBounds.southWest), lngLat(routeBounds.northEast))
-					: coords.reduce(
-							(b, c) => b.extend(c as LngLatLike),
-							new mapboxgl.LngLatBounds(coords[0] as LngLatLike, coords[0] as LngLatLike)
-						)
-				m.fitBounds(bounds, { padding: routePadding, duration: 500 })
-			}
-		}
 
-		if (map.isStyleLoaded()) {
-			draw()
-		} else {
-			map.once(`style.load`, draw)
-		}
+			if (map.isStyleLoaded()) {
+				draw()
+			} else {
+				map.once(`style.load`, draw)
+			}
+		})
 
 		return () => {
+			cancelled = true
 			const m = mapRef.current
 			if (!m) return
 			try {
