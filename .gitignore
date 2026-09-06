@@ -8,3 +8,5 @@ coverage
 tsconfig.tsbuildinfo
 .cache
 .history
+
+test-results/
