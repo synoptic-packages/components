@@ -36,3 +36,31 @@ jobs:
 
             - name: Build Storybook
               run: yarn build-storybook
+
+    e2e:
+        name: Storybook e2e (Playwright)
+        runs-on: ubuntu-latest
+        timeout-minutes: 25
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Install Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  cache: "yarn"
+
+            - name: Install dependencies
+              run: yarn install --frozen-lockfile --ignore-engines
+
+            - name: Install Playwright browsers
+              run: yarn test:e2e:install
+
+            - name: Build Storybook
+              run: yarn build-storybook
+
+            - name: Run Playwright suite
+              run: yarn test:e2e
