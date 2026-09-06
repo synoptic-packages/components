@@ -13,7 +13,7 @@ const external = [
 ]
 
 export default defineConfig({
-	entry: ['src/index.ts'],
+	entry: ['src/index.ts', 'src/theme/index.ts'],
 	outDir: 'dist',
 	format: ['cjs', 'esm'],
 	dts: true,

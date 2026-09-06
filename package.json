@@ -1,6 +1,6 @@
 {
 	"name": "@synotech/components",
-	"version": "4.1.2",
+	"version": "4.1.3",
 	"description": "Shared React + MUI component library for the Synotech ecosystem",
 	"keywords": [
 		"react",
@@ -12,18 +12,18 @@
 	"author": "Zeal Murapa <zeal@synotech.dev>",
 	"license": "MIT",
 	"main": "dist/index.js",
-	"module": "dist/index.mjs",
+	"module": "dist/index.js",
 	"types": "dist/index.d.ts",
 	"type": "module",
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
-			"import": "./dist/index.mjs",
+			"import": "./dist/index.js",
 			"require": "./dist/index.cjs"
 		},
 		"./theme": {
 			"types": "./dist/theme/index.d.ts",
-			"import": "./dist/theme/index.mjs",
+			"import": "./dist/theme/index.js",
 			"require": "./dist/theme/index.cjs"
 		}
 	},

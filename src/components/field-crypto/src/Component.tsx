@@ -73,7 +73,9 @@ export const Component: React.FC<IComponentProps> = ({
 	const hasError = Boolean(error?.message) && (submitCount > 0 || isTouched)
 
 	const { cryptos } = useSelector((state: RootState) => state.crypto)
-	const defaultCrypto = crypto ?? `KGR`
+	// Neutral default: a shared field must not preselect any tenant's asset.
+	// Tenants that want a preselection pass `crypto` explicitly.
+	const defaultCrypto = crypto ?? ``
 	const options = cryptos.map((crypto: TGeneric) => ({
 		value: crypto.symbol,
 		label: crypto.name,
