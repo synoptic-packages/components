@@ -42,7 +42,9 @@
 		"build-storybook": "storybook build",
 		"prepublishOnly": "yarn build",
 		"format": "prettier --write .",
-		"release": "release-it"
+		"release": "release-it",
+		"test:e2e": "playwright test",
+		"test:e2e:install": "playwright install chromium"
 	},
 	"peerDependencies": {
 		"@emotion/react": ">=11",
@@ -85,10 +87,12 @@
 		"@mui/styles": "^6.4.8",
 		"@mui/x-data-grid": "^8.17.0",
 		"@mui/x-date-pickers": "^8.17.0",
+		"@playwright/test": "^1.63.0",
 		"@reduxjs/toolkit": "^2.10.1",
 		"@storybook/addon-docs": "10.6.0",
 		"@storybook/addon-onboarding": "10.6.0",
 		"@storybook/addon-themes": "10.6.0",
+		"@storybook/react": "10.6.0",
 		"@storybook/react-vite": "10.6.0",
 		"@synotech/flags": "^3.0.1",
 		"@synotech/icons": "^4.1.6",
@@ -111,6 +115,7 @@
 		"dayjs": "^1.11.19",
 		"debounce": "^3.0.0",
 		"echarts": "^6.0.0",
+		"http-server": "^14.1.1",
 		"i18next": "^25.6.1",
 		"libphonenumber-js": "^1.12.26",
 		"lottie-react": "^2.4.1",
@@ -135,8 +140,7 @@
 		"tsup": "^8.5.0",
 		"typescript": "^5.8.3",
 		"vite": "^8.0.0",
-		"yup": "^1.7.1",
-		"@storybook/react": "10.6.0"
+		"yup": "^1.7.1"
 	},
 	"prettier": {
 		"bracketSpacing": true,
