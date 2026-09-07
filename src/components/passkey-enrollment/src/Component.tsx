@@ -174,10 +174,15 @@ export const Component: React.FC<PasskeyEnrollmentProps> = ({ testId, client, no
 	)
 
 	const confirmRemoveRow = useCallback(
-		(row: PasskeyRow) => {
-			void askRemove(row)
+		async (row: PasskeyRow) => {
+			// Default path drives removal itself through the dialog's onConfirm
+			// (resolves void); an injected confirm answers true/false and the
+			// component removes on true.
+			if (await askRemove(row)) {
+				await remove(row)
+			}
 		},
-		[askRemove]
+		[askRemove, remove]
 	)
 
 	const openRename = useCallback(
