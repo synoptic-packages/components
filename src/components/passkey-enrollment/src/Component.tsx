@@ -59,9 +59,25 @@ interface RenameValues {
  * Port note: ventry imported its `parse/auth-client` directly. The library takes the bound
  * client as a `client` prop instead — same four methods, same envelopes.
  */
-export const Component: React.FC<PasskeyEnrollmentProps> = ({ testId, client }) => {
+export const Component: React.FC<PasskeyEnrollmentProps> = ({ testId, client, notify, confirmRemove }) => {
 	const base = testId ?? DEFAULT_TEST_ID
 	const { setDialog, setSnackbar } = useConfig()
+	const feedback = notify ?? ((notice) => setSnackbar?.({ ...notice }))
+	const askRemove =
+		confirmRemove ??
+		((row: PasskeyRow) =>
+			setDialog?.({
+				...initialDialog,
+				open: true,
+				title: `Remove passkey?`,
+				description: `${passkeyLabel(row)} will no longer sign you in. You can add it again from that device.`,
+				confirmTitle: `Remove`,
+				variant: `warning`,
+				testId: `${base}-remove-confirm`,
+				onConfirm: async () => {
+					await remove(row)
+				},
+			}))
 
 	const [rows, setRows] = useState<PasskeyRow[] | null>(null)
 	const [loading, setLoading] = useState(true)
@@ -109,17 +125,17 @@ export const Component: React.FC<PasskeyEnrollmentProps> = ({ testId, client }) 
 		try {
 			const { error } = await client.addPasskey({ name: defaultPasskeyName() })
 			if (error) {
-				setSnackbar?.({
+				feedback({
 					open: true,
 					message: passkeyErrorMessage(error, `Could not set up a passkey on this device.`),
 					severity: `error`,
 				})
 				return
 			}
-			setSnackbar?.({ open: true, message: `Passkey added.`, severity: `success` })
+			feedback({ open: true, message: `Passkey added.`, severity: `success` })
 			await load()
 		} catch (error: unknown) {
-			setSnackbar?.({
+			feedback({
 				open: true,
 				message: passkeyErrorMessage(error, `Could not set up a passkey on this device.`),
 				severity: `error`,
@@ -135,17 +151,17 @@ export const Component: React.FC<PasskeyEnrollmentProps> = ({ testId, client }) 
 			try {
 				const { error } = await client.deletePasskey({ id: row.id })
 				if (error) {
-					setSnackbar?.({
+					feedback({
 						open: true,
 						message: passkeyErrorMessage(error, `Could not remove that passkey.`),
 						severity: `error`,
 					})
 					return
 				}
-				setSnackbar?.({ open: true, message: `Passkey removed.`, severity: `success` })
+				feedback({ open: true, message: `Passkey removed.`, severity: `success` })
 				await load()
 			} catch (error: unknown) {
-				setSnackbar?.({
+				feedback({
 					open: true,
 					message: passkeyErrorMessage(error, `Could not remove that passkey.`),
 					severity: `error`,
@@ -157,22 +173,11 @@ export const Component: React.FC<PasskeyEnrollmentProps> = ({ testId, client }) 
 		[client, load, setSnackbar]
 	)
 
-	const confirmRemove = useCallback(
+	const confirmRemoveRow = useCallback(
 		(row: PasskeyRow) => {
-			setDialog?.({
-				...initialDialog,
-				open: true,
-				title: `Remove passkey?`,
-				description: `${passkeyLabel(row)} will no longer sign you in. You can add it again from that device.`,
-				confirmTitle: `Remove`,
-				variant: `warning`,
-				testId: `${base}-remove-confirm`,
-				onConfirm: async () => {
-					await remove(row)
-				},
-			})
+			void askRemove(row)
 		},
-		[base, remove, setDialog]
+		[askRemove]
 	)
 
 	const openRename = useCallback(
@@ -205,7 +210,7 @@ export const Component: React.FC<PasskeyEnrollmentProps> = ({ testId, client }) 
 				return
 			}
 			setRenaming(null)
-			setSnackbar?.({ open: true, message: `Passkey renamed.`, severity: `success` })
+			feedback({ open: true, message: `Passkey renamed.`, severity: `success` })
 			await load()
 		} catch (error: unknown) {
 			setRenameError(passkeyErrorMessage(error, `Could not rename that passkey.`))
@@ -260,7 +265,7 @@ export const Component: React.FC<PasskeyEnrollmentProps> = ({ testId, client }) 
 									<IconButton
 										aria-label={`remove passkey`}
 										disabled={busyId === row.id}
-										onClick={() => confirmRemove(row)}
+										onClick={() => confirmRemoveRow(row)}
 										testId={`${base}-remove-${row.id}`}>
 										<Icon name={`Trash2`} size={18} />
 									</IconButton>

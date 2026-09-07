@@ -37,4 +37,16 @@ export interface PasskeyEnrollmentProps {
 	 */
 	testId?: string
 	client: PasskeyClient
+	/**
+	 * Feedback seam. Defaults to the package config context (`useConfig().setSnackbar`);
+	 * hosts whose app shell owns its own snackbar/dialog system pass it explicitly —
+	 * a shared component must never assume which context is mounted above it.
+	 */
+	notify?: (_notice: { open: boolean; message: string; severity: `success` | `error` }) => void
+	/**
+	 * Destructive-confirm seam. Defaults to the package config context
+	 * (`useConfig().setDialog`); hosts with their own dialog system pass a
+	 * function that asks and calls back (resolving true removes the passkey).
+	 */
+	confirmRemove?: (_row: PasskeyRow) => Promise<boolean> | boolean
 }
