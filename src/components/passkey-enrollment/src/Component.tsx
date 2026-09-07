@@ -322,7 +322,13 @@ export const Component: React.FC<PasskeyEnrollmentProps> = ({ testId, client, no
 						resetLabel={`Cancel`}
 						submitLabel={`Save`}>
 						{({ control: formControl }) => (
-							<FormContent title={`Rename passkey`} hideTitle={true} error={renameError} success={null}>
+							<FormContent
+								title={`Rename passkey`}
+								hideTitle={true}
+								error={renameError}
+								success={null}
+								errorTestId={`${base}-rename-error`}
+							>
 								<FieldText
 									control={formControl}
 									name={`name`}
